@@ -4,17 +4,10 @@ use 5.010;
 use strict;
 use warnings;
 
-# VERSION
-
-=head1 SYNOPSIS
-
-=cut
-
-use 5.010;
-use strict;
-use warnings;
-
+#use SHARYANTO::Array::Util qw(match_array_or_regex); # we'll just use ~~
 use Test::Builder;
+
+# VERSION
 
 my $Test = Test::Builder->new;
 
@@ -22,109 +15,131 @@ sub import {
     my $self = shift;
     my $caller = caller;
     no strict 'refs';
-    *{$caller.'::function_metadata_ok'}       = \&function_metadata_ok;
-    *{$caller.'::function_metadata_ok'}       = \&function_metadata_ok;
-    *{$caller.'::function_metadata_ok'}       = \&function_metadata_ok;
-    *{$caller.'::_metadata_ok'}       = \&function_metadata_ok;
-    *{$caller.'::_metadata_ok'}       = \&function_metadata_ok;
-    *{$caller.'::all_pod_coverage_ok'}   = \&all_pod_coverage_ok;
-    *{$caller.'::all_modules'}           = \&all_modules;
+    *{$caller.'::metadata_in_module_ok'}      = \&metadata_in_module_ok;
+    *{$caller.'::metadata_in_all_modules_ok'} = \&metadata_in_all_modules_ok;
 
     $Test->exported_to($caller);
     $Test->plan(@_);
 }
 
-=head1 FUNCTIONS
-
-All functions listed below are exported to the calling namespace.
-
-=head2 all_pod_coverage_ok( [$parms, ] $msg )
-
-Checks that the POD code in all modules in the distro have proper POD
-coverage.
-
-If the I<$parms> hashref if passed in, they're passed into the
-C<Pod::Coverage> object that the function uses.  Check the
-L<Pod::Coverage> manual for what those can be.
-
-The exception is the C<coverage_class> parameter, which specifies a class to
-use for coverage testing.  It defaults to C<Pod::Coverage>.
-
-=cut
-
-sub all_pod_coverage_ok {
-    my $parms = (@_ && (ref $_[0] eq "HASH")) ? shift : {};
-    my $msg = shift;
+sub metadata_in_all_modules_ok {
+    my $opts = (@_ && (ref $_[0] eq "HASH")) ? shift : {};
+    my $msg  = shift;
 
     my $ok = 1;
     my @modules = all_modules();
-    if ( @modules ) {
-        $Test->plan( tests => scalar @modules );
+    if (@modules) {
+        $Test->plan(tests => ~~@modules);
 
-        for my $module ( @modules ) {
-            my $thismsg = defined $msg ? $msg : "Pod coverage on $module";
-
-            my $thisok = pod_coverage_ok( $module, $parms, $thismsg );
+        for my $module (@modules) {
+            my $thismsg = defined $msg ? $msg : "Rinci metadata on $module";
+            my $thisok = metadata_in_module_ok($module, $opts, $thismsg);
             $ok = 0 unless $thisok;
         }
-    }
-    else {
-        $Test->plan( tests => 1 );
-        $Test->ok( 1, "No modules found." );
+    } else {
+        $Test->plan(tests => 1);
+        $Test->ok(1, "No modules found.");
     }
 
     return $ok;
 }
 
-
-=head2 pod_coverage_ok( $module, [$parms, ] $msg )
-
-Checks that the POD code in I<$module> has proper POD coverage.
-
-If the I<$parms> hashref if passed in, they're passed into the
-C<Pod::Coverage> object that the function uses.  Check the
-L<Pod::Coverage> manual for what those can be.
-
-The exception is the C<coverage_class> parameter, which specifies a class to
-use for coverage testing.  It defaults to C<Pod::Coverage>.
-
-=cut
-
-sub pod_coverage_ok {
+sub metadata_in_module_ok {
     my $module = shift;
-    my %parms = (@_ && (ref $_[0] eq "HASH")) ? %{(shift)} : ();
-    my $msg = @_ ? shift : "Pod coverage on $module";
+    my %opts   = (@_ && (ref $_[0] eq "HASH")) ? %{(shift)} : ();
+    my $msg    = @_ ? shift : "Rinci metadata on $module";
+    my $res;
 
-    my $pc_class = (delete $parms{coverage_class}) || 'Pod::Coverage';
-    eval "require $pc_class" or die $@;
+    $opts{test_package_metadata}   //= 1;
+    $opts{exclude_packages}        //= [];
+    $opts{test_function_metadata}  //= 1;
+    $opts{wrap_function}           //= 1;
+    $opts{test_function_examples}  //= 1;
+    $opts{exclude_functions}       //= [];
+    $opts{test_variable_metadata}  //= 1;
+    $opts{exclude_variables}       //= [];
 
-    my $pc = $pc_class->new( package => $module, %parms );
+    state $pai = do {
+        require Perinci::Access::InProcess;
+        Perinci::Access::InProcess->new(load=>0);
+    };
 
-    my $rating = $pc->coverage;
-    my $ok;
-    if ( defined $rating ) {
-        $ok = ($rating == 1);
-        $Test->ok( $ok, $msg );
-        if ( !$ok ) {
-            my @nakies = sort $pc->naked;
-            my $s = @nakies == 1 ? "" : "s";
-            $Test->diag(
-                sprintf( "Coverage for %s is %3.1f%%, with %d naked subroutine$s:",
-                    $module, $rating*100, scalar @nakies ) );
-            $Test->diag( "\t$_" ) for @nakies;
-        }
+    #local @INC = @INC;
+    #unshift @INC, ".";
+
+    my $has_tests;
+
+    my $modulep = $module; $modulep =~ s!::!/!g; $modulep .= ".pm";
+    require $modulep;
+
+    $Test->subtest(
+        $msg,
+        sub {
+            my $uri = "/$module/"; $uri =~ s!::!/!g;
+
+            if ($opts{test_package_metadata} &&
+                    !($module ~~ $opts{exclude_packages})) {
+                $res = $pai->request(meta => $uri);
+                if ($res->[0] != 200) {
+                    $Test->ok(0, "load package metadata");
+                    $Test->diag("Can't meta => $uri: $res->[0] - $res->[1]");
+                    return 0;
+                }
+                # XXX test package metadata
+                $has_tests++;
+                $Test->ok(1, "package metadata");
+            } else {
+                $Test->diag("Skipped testing package metadata $module");
+            }
+
+            return unless $opts{test_function_metadata} ||
+                $opts{test_variable_metadata};
+
+            $res = $pai->request(list => $uri, {detail=>1});
+            if ($res->[0] != 200) {
+                $Test->ok(0, "list entities");
+                $Test->diag("Can't list => $uri: $res->[0] - $res->[1]");
+                return 0;
+            }
+            for my $e (@{$res->[2]}) {
+                my $en = $e->{uri}; $en =~ s!.+/!!;
+                my $fen = "$module\::$en";
+                if ($e->{type} eq 'function') {
+                    if ($opts{test_function_metadata} &&
+                            !($en ~~ $opts{exclude_functions})) {
+                        # XXX test function metadata
+                        $has_tests++;
+                        $Test->ok(1, "function metadata $fen");
+                    } else {
+                        $Test->diag("Skipped function metadata $fen");
+                    }
+                } elsif ($e->{type} eq 'variable') {
+                    if ($opts{test_variable_metadata} &&
+                            !($en ~~ $opts{exclude_variables})) {
+                        # XXX test variable metadata
+                        $has_tests++;
+                        $Test->ok(1, "variable metadata $fen");
+                    } else {
+                        $Test->diag("Skipped variable metadata $fen");
+                    }
+                } else {
+                    $Test->diag("Skipped $e->{type} metadata $fen")
+                        unless $e->{type} eq 'package';
+                    next;
+                }
+            } # for list entry
+        } # subtest
+    );
+
+    unless ($has_tests) {
+        $Test->ok(1);
+        $Test->diag("No metadata to test");
     }
-    else { # No symbols
-        my $why = $pc->why_unrated;
-        my $nopublics = ( $why =~ "no public symbols defined" );
-        my $verbose = $ENV{HARNESS_VERBOSE} || 0;
-        $ok = $nopublics;
-        $Test->ok( $ok, $msg );
-        $Test->diag( "$module: $why" ) unless ( $nopublics && !$verbose );
-    }
 
-    return $ok;
+    1;
 }
+
+# BEGIN copy-pasted from Test::Pod::Coverage
 
 =head2 all_modules( [@dirs] )
 
@@ -169,14 +184,14 @@ sub all_modules {
 
             # Untaint the parts
             for ( @parts ) {
-                if ( /^([a-zA-Z0-9_\.\-]+)$/ && ($_ eq $1) ) {
+                if ( /^([a-zA-Z0-9_\.\-]*)$/ && ($_ eq $1) ) {
                     $_ = $1;  # Untaint the original
                 }
                 else {
                     die qq{Invalid and untaintable filename "$file"!};
                 }
             }
-            my $module = join( "::", @parts );
+            my $module = join( "::", grep {length} @parts );
             push( @modules, $module );
         }
     } # while
@@ -189,130 +204,101 @@ sub _starting_points {
     return 'lib';
 }
 
-=head1 BUGS
-
-Please report any bugs or feature requests to
-C<bug-test-pod-coverage at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Test-Pod-Coverage>.
-I will be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Test::Pod::Coverage
-
-You can also look for information at:
-
-=over 4
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Test-Pod-Coverage>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Test-Pod-Coverage>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Test-Pod-Coverage>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Test-Pod-Coverage>
-
-=back
-
-=head1 AUTHOR
-
-Written by Andy Lester, C<< <andy at petdance.com> >>.
-
-=head1 ACKNOWLEDGEMENTS
-
-Thanks to Ricardo Signes for patches, and Richard Clamp for
-writing Pod::Coverage.
-
-=head1 COPYRIGHT & LICENSE
-
-Copyright 2006, Andy Lester, All Rights Reserved.
-
-You may use, modify, and distribute this package under the
-same terms as Perl itself.
-
-=cut
-
-1;
+# END copy-pasted from Test::Pod::Coverage
 
 1;
 # ABSTRACT: Test Rinci metadata
 
 =head1 SYNOPSIS
 
-Check various Rinci metadata:
-
- use Test::Rinci tests=>4;
-
- package_metadata_ok($pkgmeta);
- function_metadata_ok($funmeta);
- var_metadata_ok($varmeta);
- result_metadata_ok($resmeta);
-
-Alternatively, you can check all metadata in a module:
+To check all metadata in a module:
 
  use Test::Rinci tests=>1;
- metadata_in_module_ok("Foo::Bar", {opts => ...});
+ metadata_in_module_ok("Foo::Bar", {opt => ...}, $msg);
 
-Finally, you can check all metadata in all modules in a distro.
+Alternatively, you can check all metadata in all modules in a distro:
 
- # release-rinci.t
+ # save in release-rinci.t, put in distro's t/ subdirectory
  use Test::More;
  plan skip_all => "Not release testing" unless $ENV{RELEASE_TESTING};
  eval "use Test::Rinci";
  plan skip_all => "Test::Rinci required for testing Rinci metadata" if $@;
- metadata_in_all_modules_ok({opts => ...});
+ metadata_in_all_modules_ok({opt => ...}, $msg);
+
 
 =head1 DESCRIPTION
 
-This module provides routines to check L<Rinci> metadata. The routines perform
-various checks on metadata (validate its syntax, normalize the schemas, try to
-compile the schema, try to wrap subroutine to generate new normalize metadata,
-etc). It is recommended that you include something like C<release-rinci.t> in
-your distribution if you add metadata to your code. If you use L<Dist::Zilla> to
+This module performs various checks on a module's L<Rinci> metadata. It is
+recommended that you include something like C<release-rinci.t> in your
+distribution if you add metadata to your code. If you use L<Dist::Zilla> to
 build your distribution, there is L<Dist::Zilla::Plugin::Test::Rinci> to make it
 easy to do so.
 
 
 =head1 FUNCTIONS
 
-All these functions are exported by defaullt.
+All these functions are exported by default.
 
-=head2 package_metadata_ok($meta [, \%opts ])
-
-Currently does nothing.
-
-=head2 function_metadata_ok($meta [, \%opts ])
-
-Currently does nothing.
-
-=head2 var_metadata_ok($meta [, \%opts ])
-
-Currently does nothing.
-
-=head2 result_metadata_ok($meta [, \%opts ])
-
-Currently does nothing.
-
-=head2 metadata_in_module_ok($module [, \%opts ])
+=head2 metadata_in_module_ok($module [, \%opts ] [, $msg])
 
 Load C<$module>, get its metadata, and perform test on all of them. For function
 metadata, a wrapping to the function is done to see if it can be wrapped.
 
-=head2 metadata_in_all_modules_ok([ \%opts ])
+Available options:
+
+=over 4
+
+=item * test_package_metadata => BOOL (default: 1)
+
+Whether to test package metadata found in module.
+
+=item * exclude_packages => REGEX/ARRAY
+
+List of packages to exclude from testing.
+
+=item * test_function_metadata => BOOL (default: 1)
+
+Whether to test function metadata found in module. Currently require
+C<wrap_function> option to be turned on, as the tests are done to the metadata
+generated by the wrapper (for convenience, since the wrapper can convert old
+v1.0 metadata to v1.1).
+
+=item * wrap_function => BOOL (default: 1)
+
+Whether to wrap function (using L<Perinci::Sub::Wrapper>). All tests which run
+module's functions require this option to be turned on.
+
+=item * test_function_examples => BOOL (default: 1)
+
+Whether to test examples in function metadata, by running each example and
+comparing the specified result with actual result. Will only take effect when
+C<test_function_metadata> and C<wrap_functions> is turned on.
+
+=item * exclude_functions => REGEX/ARRAY
+
+List of functions to exclude from testing.
+
+=item * test_variable_metadata => BOOL (default: 1)
+
+Whether to test function metadata found in module.
+
+=item * exclude_variables => REGEX/ARRAY
+
+List of variables to exclude from testing.
+
+=back
+
+=head2 metadata_in_all_modules_ok([ \%opts ] [, $msg])
 
 Look for modules in directory C<lib> (or C<blib> instead, if it exists), and
 C<run metadata_in_module_ok()> on each of them.
+
+Options are the same as in C<metadata_in_module_ok()>.
+
+
+=head1 ACKNOWLEDGEMENTS
+
+Some code taken from L<Test::Pod::Coverage> by Andy Lester.
 
 
 =head1 SEE ALSO
