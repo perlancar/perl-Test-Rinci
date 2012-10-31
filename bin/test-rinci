@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+
+use 5.010;
+use strict;
+use warnings;
+use Log::Any::App;
+
+use Test::Rinci;
+
+# VERSION
+
+metadata_in_all_modules_ok();
+1;
+# ABSTRACT: Test Rinci metadata in all dist's modules
+# PODNAME: test-rinci
+
+=head1 SYNOPSIS
+
+In your dist directory:
+
+ % test-rinci
+
+
+=head1 DESCRIPTION
+
+This script is an command-line interface for L<Test::Rinci>'s
+C<metadata_in_all_modules_ok()> function.
+
+
+=head1 TODO
+
+Provide options.
+
+
+=head1 SEE ALSO
+
+L<Test::Rinci>
+
+=cut
