@@ -3,13 +3,18 @@ package Test::Rinci;
 use 5.010;
 use strict;
 use warnings;
+#use Log::Any '$log';
 
+use Perinci::Access::InProcess;
 #use SHARYANTO::Array::Util qw(match_array_or_regex); # we'll just use ~~
 use Test::Builder;
+use Test::More ();
 
 # VERSION
 
 my $Test = Test::Builder->new;
+# XXX is cache_size=0 really necessary?
+my $Pa = Perinci::Access::InProcess->new(load=>0, cache_size=>0);
 
 sub import {
     my $self = shift;
@@ -22,26 +27,59 @@ sub import {
     $Test->plan(@_);
 }
 
-sub metadata_in_all_modules_ok {
-    my $opts = (@_ && (ref $_[0] eq "HASH")) ? shift : {};
-    my $msg  = shift;
+sub _test_package_metadata {
+    my ($uri, $opts) = @_;
+    $Test->ok(1, "currently no test for package metadata");
+}
 
+sub _test_function_metadata {
+    my ($uri, $opts) = @_;
     my $ok = 1;
-    my @modules = all_modules();
-    if (@modules) {
-        $Test->plan(tests => ~~@modules);
 
-        for my $module (@modules) {
-            my $thismsg = defined $msg ? $msg : "Rinci metadata on $module";
-            my $thisok = metadata_in_module_ok($module, $opts, $thismsg);
-            $ok = 0 unless $thisok;
-        }
-    } else {
-        $Test->plan(tests => 1);
-        $Test->ok(1, "No modules found.");
+    my $res = $Pa->request(meta => $uri);
+    $Test->is_num($res->[0], 200, "wrap (load meta)") or $ok = 0;
+    if ($res->[0] != 200) {
+        $Test->diag("Can't meta $uri: $res->[0] - $res->[1]");
+        return 0;
     }
+    my $meta = $res->[2];
+    if ($opts->{test_function_examples} && $meta->{examples}) {
+        my $i = 0;
+        for my $eg (@{ $meta->{examples} }) {
+            $i++;
+            $Test->subtest(
+                "example #$i" . ($eg->{summary} ? " ($eg->{summary})" : ""),
+                sub {
+                    my $args;
+                    if ($eg->{args}) {
+                        $args = $eg->{args};
+                    } elsif ($eg->{argv}) {
+                        require Perinci::Sub::GetArgs::Argv;
+                        my $r = Perinci::Sub::GetArgs::Argv::get_args_from_argv(
+                            argv => $eg->{argv}, meta => $meta,
+                        );
+                        unless ($r->[0] == 200) {
+                            $Test->diag("Can't parse argv into args");
+                            return;
+                        }
+                        $args = $r->[2];
+                    }
+                    my $r = $Pa->request(call => $uri, {args=>$args});
+                    $Test->is_num($r->[0], $eg->{status} // 200, "status")
+                        or $ok = 0;
+                    if (exists $eg->{result}) {
+                        Test::More::is_deeply($r->[2], $eg->{result}, "result")
+                              or $ok = 0;
+                    }
+                }) or $ok = 0;
+        }
+    }
+    $ok;
+}
 
-    return $ok;
+sub _test_variable_metadata {
+    my ($uri, $opts) = @_;
+    $Test->ok(1, "currently no test for variable metadata");
 }
 
 sub metadata_in_module_ok {
@@ -49,6 +87,7 @@ sub metadata_in_module_ok {
     my %opts   = (@_ && (ref $_[0] eq "HASH")) ? %{(shift)} : ();
     my $msg    = @_ ? shift : "Rinci metadata on $module";
     my $res;
+    my $ok = 1;
 
     $opts{test_package_metadata}   //= 1;
     $opts{exclude_packages}        //= [];
@@ -58,14 +97,6 @@ sub metadata_in_module_ok {
     $opts{exclude_functions}       //= [];
     $opts{test_variable_metadata}  //= 1;
     $opts{exclude_variables}       //= [];
-
-    state $pai = do {
-        require Perinci::Access::InProcess;
-        Perinci::Access::InProcess->new(load=>0);
-    };
-
-    #local @INC = @INC;
-    #unshift @INC, ".";
 
     my $has_tests;
 
@@ -79,15 +110,17 @@ sub metadata_in_module_ok {
 
             if ($opts{test_package_metadata} &&
                     !($module ~~ $opts{exclude_packages})) {
-                $res = $pai->request(meta => $uri);
+                $res = $Pa->request(meta => $uri);
                 if ($res->[0] != 200) {
-                    $Test->ok(0, "load package metadata");
+                    $Test->ok(0, "load package metadata") or $ok = 0;
                     $Test->diag("Can't meta => $uri: $res->[0] - $res->[1]");
                     return 0;
                 }
-                # XXX test package metadata
                 $has_tests++;
-                $Test->ok(1, "package metadata");
+                $Test->subtest(
+                    "package metadata $module", sub {
+                        _test_package_metadata($uri, \%opts);
+                    }) or $ok = 0;
             } else {
                 $Test->diag("Skipped testing package metadata $module");
             }
@@ -95,9 +128,9 @@ sub metadata_in_module_ok {
             return unless $opts{test_function_metadata} ||
                 $opts{test_variable_metadata};
 
-            $res = $pai->request(list => $uri, {detail=>1});
+            $res = $Pa->request(list => $uri, {detail=>1});
+            $Test->ok($res->[0] == 200, "list entities") or $ok = 0;
             if ($res->[0] != 200) {
-                $Test->ok(0, "list entities");
                 $Test->diag("Can't list => $uri: $res->[0] - $res->[1]");
                 return 0;
             }
@@ -107,18 +140,22 @@ sub metadata_in_module_ok {
                 if ($e->{type} eq 'function') {
                     if ($opts{test_function_metadata} &&
                             !($en ~~ $opts{exclude_functions})) {
-                        # XXX test function metadata
                         $has_tests++;
-                        $Test->ok(1, "function metadata $fen");
+                        $Test->subtest(
+                            "function metadata $fen", sub {
+                                _test_function_metadata($e->{uri}, \%opts);
+                            }) or $ok = 0;
                     } else {
                         $Test->diag("Skipped function metadata $fen");
                     }
                 } elsif ($e->{type} eq 'variable') {
                     if ($opts{test_variable_metadata} &&
                             !($en ~~ $opts{exclude_variables})) {
-                        # XXX test variable metadata
                         $has_tests++;
-                        $Test->ok(1, "variable metadata $fen");
+                        $Test->subtest(
+                            "variable metadata $fen", sub {
+                                _test_variable_metadata($e->{uri}, \%opts);
+                            }) or $ok = 0;
                     } else {
                         $Test->diag("Skipped variable metadata $fen");
                     }
@@ -129,30 +166,17 @@ sub metadata_in_module_ok {
                 }
             } # for list entry
         } # subtest
-    );
+    ) or $ok = 0;
 
     unless ($has_tests) {
         $Test->ok(1);
         $Test->diag("No metadata to test");
     }
 
-    1;
+    $ok;
 }
 
-# BEGIN copy-pasted from Test::Pod::Coverage
-
-=head2 all_modules( [@dirs] )
-
-Returns a list of all modules in I<$dir> and in directories below. If
-no directories are passed, it defaults to F<blib> if F<blib> exists,
-or F<lib> if not.
-
-Note that the modules are as "Foo::Bar", not "Foo/Bar.pm".
-
-The order of the files returned is machine-dependent.  If you want them
-sorted, you'll have to sort them yourself.
-
-=cut
+# BEGIN copy-pasted from Test::Pod::Coverage, with a bit modification
 
 sub all_modules {
     my @starters = @_ ? @_ : _starting_points();
@@ -205,6 +229,37 @@ sub _starting_points {
 }
 
 # END copy-pasted from Test::Pod::Coverage
+
+sub metadata_in_all_modules_ok {
+    my $opts = (@_ && (ref $_[0] eq "HASH")) ? shift : {};
+    my $msg  = shift;
+    my $ok = 1;
+
+    my @starters = _starting_points();
+    local @INC = (@starters, @INC);
+
+    $Test->plan(tests => 1);
+
+    my @modules = all_modules(@starters);
+    if (@modules) {
+        $Test->subtest(
+            "Rinci metadata on all dist's modules",
+            sub {
+                for my $module (@modules) {
+                    #$log->infof("Processing module %s ...", $module);
+                    my $thismsg = defined $msg ? $msg :
+                        "Rinci metadata on $module";
+                    my $thisok = metadata_in_module_ok(
+                        $module, $opts, $thismsg)
+                        or $ok = 0;
+                }
+            }
+        ) or $ok = 0;
+    } else {
+        $Test->ok(1, "No modules found.");
+    }
+    $ok;
+}
 
 1;
 # ABSTRACT: Test Rinci metadata
@@ -302,6 +357,8 @@ Some code taken from L<Test::Pod::Coverage> by Andy Lester.
 
 
 =head1 SEE ALSO
+
+L<test-rinci>, a command-line interface for C<metadata_in_all_modules_ok()>.
 
 L<Rinci>
 
