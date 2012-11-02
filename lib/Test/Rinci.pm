@@ -29,12 +29,15 @@ sub import {
 
 sub _test_package_metadata {
     my ($uri, $opts) = @_;
+    # XXX validate metadata
     $Test->ok(1, "currently no test for package metadata");
 }
 
 sub _test_function_metadata {
     my ($uri, $opts) = @_;
     my $ok = 1;
+
+    # XXX validate metadata
 
     my $res = $Pa->request(meta => $uri);
     $Test->is_num($res->[0], 200, "wrap (load meta)") or $ok = 0;
@@ -79,6 +82,7 @@ sub _test_function_metadata {
 
 sub _test_variable_metadata {
     my ($uri, $opts) = @_;
+    # XXX validate metadata
     $Test->ok(1, "currently no test for variable metadata");
 }
 
