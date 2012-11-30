@@ -69,7 +69,7 @@ sub _test_function_metadata {
                     }
                     my $r = $Pa->request(call => $uri, {args=>$args});
                     $Test->is_num($r->[0], $eg->{status} // 200, "status")
-                        or $ok = 0;
+                        or do { $Test->diag($Test->explain($r)); $ok = 0 };
                     if (exists $eg->{result}) {
                         Test::More::is_deeply($r->[2], $eg->{result}, "result")
                               or $ok = 0;
