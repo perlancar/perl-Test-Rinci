@@ -1,6 +1,13 @@
 Revision history for Test-Rinci
 
+0.02    2013-08-22 (SHARYANTO)
+
+        [BUG FIXES]
+
+        - Forgot to 'use File::Spec'.
+
+
 0.01    2012-10-31 (SHARYANTO)
 
-        First release.
+        - First release.
 

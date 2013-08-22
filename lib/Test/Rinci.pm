@@ -1,6 +1,6 @@
 package Test::Rinci;
 
-use 5.010;
+use 5.010001;
 use strict;
 use warnings;
 #use Log::Any '$log';
@@ -268,6 +268,8 @@ sub metadata_in_all_modules_ok {
 
 1;
 # ABSTRACT: Test Rinci metadata
+
+=for Pod::Coverage ^(all_modules)$
 
 =head1 SYNOPSIS
 
