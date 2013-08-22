@@ -5,6 +5,7 @@ use strict;
 use warnings;
 #use Log::Any '$log';
 
+use File::Spec;
 use Perinci::Access::InProcess;
 #use SHARYANTO::Array::Util qw(match_array_or_regex); # we'll just use ~~
 use Test::Builder;
