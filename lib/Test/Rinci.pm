@@ -6,7 +6,7 @@ use warnings;
 #use Log::Any '$log';
 
 use File::Spec;
-use Perinci::Access::InProcess;
+use Perinci::Access::Perl;
 #use SHARYANTO::Array::Util qw(match_array_or_regex); # we'll just use ~~
 use Test::Builder;
 use Test::More ();
@@ -15,7 +15,7 @@ use Test::More ();
 
 my $Test = Test::Builder->new;
 # XXX is cache_size=0 really necessary?
-my $Pa = Perinci::Access::InProcess->new(load=>0, cache_size=>0);
+my $Pa = Perinci::Access::Perl->new(load=>0, cache_size=>0);
 
 sub import {
     my $self = shift;
@@ -111,7 +111,7 @@ sub metadata_in_module_ok {
     $Test->subtest(
         $msg,
         sub {
-            my $uri = "/$module/"; $uri =~ s!::!/!g;
+            my $uri = "pl:/$module/"; $uri =~ s!::!/!g;
 
             if ($opts{test_package_metadata} &&
                     !($module ~~ $opts{exclude_packages})) {
@@ -374,4 +374,3 @@ L<Perinci::Sub::Wrapper>
 L<Dist::Zilla::Plugin::Test::Rinci>
 
 =cut
-
