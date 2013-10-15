@@ -1,5 +1,10 @@
 Revision history for Test-Rinci
 
+0.04    2013-10-15 (SHARYANTO)
+
+        - Recognize Rinci 1.1.39's examples with 'src' (but skips them for now).
+
+
 0.03    2013-09-08 (SHARYANTO)
 
         - Replace Perinci::Access::InProcess with ::Perl.
