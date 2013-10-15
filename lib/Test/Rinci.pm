@@ -64,9 +64,18 @@ sub _test_function_metadata {
                         );
                         unless ($r->[0] == 200) {
                             $Test->diag("Can't parse argv into args");
+                            $ok = 0;
                             return;
                         }
                         $args = $r->[2];
+                    } elsif (defined $eg->{src}) {
+                        $Test->diag("Skipping example #$i for now (src)");
+                        Test::More::ok(1);
+                        return;
+                    } else {
+                        $Test->diag("Bad example #$i: No args/argv/src");
+                        $ok = 0;
+                        return;
                     }
                     my $r = $Pa->request(call => $uri, {args=>$args});
                     $Test->is_num($r->[0], $eg->{status} // 200, "status")
