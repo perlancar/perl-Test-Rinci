@@ -51,6 +51,7 @@ sub _test_function_metadata {
         my $i = 0;
         for my $eg (@{ $meta->{examples} }) {
             $i++;
+            next unless $eg->{test} // 1;
             $Test->subtest(
                 "example #$i" . ($eg->{summary} ? " ($eg->{summary})" : ""),
                 sub {
