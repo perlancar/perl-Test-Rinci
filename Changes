@@ -1,5 +1,11 @@
 Revision history for Test-Rinci
 
+0.05    2013-11-07 (SHARYANTO)
+
+        - Allow skipping testing an example if example's 'test' property is set
+          to 0 (Rinci 1.1.41).
+
+
 0.04    2013-10-15 (SHARYANTO)
 
         - Recognize Rinci 1.1.39's examples with 'src' (but skips them for now).
