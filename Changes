@@ -1,5 +1,11 @@
 Revision history for Test-Rinci
 
+0.06    2013-11-20 (SHARYANTO)
+
+        - No functional changes. Add 'use experimental smartmatch' for perl
+          5.18+.
+
+
 0.05    2013-11-07 (SHARYANTO)
 
         - Allow skipping testing an example if example's 'test' property is set
