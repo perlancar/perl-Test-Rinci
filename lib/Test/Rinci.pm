@@ -7,7 +7,7 @@ use experimental 'smartmatch';
 #use Log::Any '$log';
 
 use File::Spec;
-use Perinci::Access::Perl;
+use Perinci::Access::Perl 0.55;
 #use SHARYANTO::Array::Util qw(match_array_or_regex); # we'll just use ~~
 use Test::Builder;
 use Test::More ();
@@ -151,15 +151,16 @@ sub metadata_in_module_ok {
                 return 0;
             }
             for my $e (@{$res->[2]}) {
-                my $en = $e->{uri}; $en =~ s!.+/!!;
-                my $fen = "$module\::$en";
+                my $en = $e->{uri};
+                my $fen = "$en (in package $module)";
                 if ($e->{type} eq 'function') {
                     if ($opts{test_function_metadata} &&
                             !($en ~~ $opts{exclude_functions})) {
                         $has_tests++;
                         $Test->subtest(
                             "function metadata $fen", sub {
-                                _test_function_metadata($e->{uri}, \%opts);
+                                _test_function_metadata("$uri$e->{uri}",
+                                                        \%opts);
                             }) or $ok = 0;
                     } else {
                         $Test->diag("Skipped function metadata $fen");
@@ -170,7 +171,8 @@ sub metadata_in_module_ok {
                         $has_tests++;
                         $Test->subtest(
                             "variable metadata $fen", sub {
-                                _test_variable_metadata($e->{uri}, \%opts);
+                                _test_variable_metadata("$uri$e->{uri}",
+                                                        \%opts);
                             }) or $ok = 0;
                     } else {
                         $Test->diag("Skipped variable metadata $fen");
