@@ -1,5 +1,10 @@
 Revision history for Test-Rinci
 
+0.08    2014-07-18 (SHARYANTO)
+
+        - Add diag+explain when testing result.
+
+
 0.07    2013-12-21 (SHARYANTO)
 
         - No functional changes. Adjust to Perinci::Access::Perl 0.55+ (list
