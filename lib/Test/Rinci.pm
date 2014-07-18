@@ -84,7 +84,11 @@ sub _test_function_metadata {
                         or do { $Test->diag($Test->explain($r)); $ok = 0 };
                     if (exists $eg->{result}) {
                         Test::More::is_deeply($r->[2], $eg->{result}, "result")
-                              or $ok = 0;
+                              or do {
+                                  Test::More::diag(
+                                      Test::More::explain($r->[2]));
+                                  $ok = 0;
+                              };
                     }
                 }) or $ok = 0;
         }
