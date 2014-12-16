@@ -12,7 +12,7 @@ use Test::Rinci;
 metadata_in_all_modules_ok();
 1;
 # ABSTRACT: Test Rinci metadata in all dist's modules
-# PODNAME: test-rinci
+# PODNAME:
 
 =head1 SYNOPSIS
 
