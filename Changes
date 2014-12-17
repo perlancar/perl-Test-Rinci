@@ -1,5 +1,11 @@
 Revision history for Test-Rinci
 
+0.09    2014-12-17 (PERLANCAR)
+
+	- Add some options to test-rinci: --exclude-function,
+	  --exclude-package, -W, -E.
+
+
 0.08    2014-07-18 (SHARYANTO)
 
         - Add diag+explain when testing result.

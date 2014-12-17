@@ -48,11 +48,11 @@ C<metadata_in_all_modules_ok()> function.
 
 =over
 
-=item --exclude-package=s
+=item * --exclude-package=s
 
 Exclude a package. Can be specified multiple times.
 
-=item --exclude-function=s
+=item * --exclude-function=s
 
 Exclude a function. Can be specified multiple times.
 
