@@ -5,6 +5,8 @@ Revision history for Test-Rinci
 	- Add some options to test-rinci: --exclude-function,
 	  --exclude-package, -W, -E.
 
+        - Remove the use of Log::Any::App to reduce deps.
+
 
 0.08    2014-07-18 (SHARYANTO)
 
