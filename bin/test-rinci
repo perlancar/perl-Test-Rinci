@@ -1,15 +1,32 @@
 #!perl
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
-use Log::Any::App;
 
+use Getopt::Long qw(:config auto_help auto_version);
 use Test::Rinci;
 
-# VERSION
+my %opts = (
+    exclude_packages => [],
+    exclude_functions => [],
+    wrap_function => 1,
+    test_function_examples => 1,
+);
+GetOptions(
+    'exclude-package=s' => $opts{exclude_packages},
+    'exclude-function=s' => $opts{exclude_functions},
+    'W' => sub { $opts{wrap_function} = 0 },
+    'E' => sub { $opts{test_function_examples} = 0 },
+);
 
-metadata_in_all_modules_ok();
+metadata_in_all_modules_ok(
+    \%opts,
+);
+
 1;
 # ABSTRACT: Test Rinci metadata in all dist's modules
 # PODNAME:
@@ -18,7 +35,7 @@ metadata_in_all_modules_ok();
 
 In your dist directory:
 
- % test-rinci
+ % test-rinci [options]
 
 
 =head1 DESCRIPTION
@@ -27,9 +44,32 @@ This script is an command-line interface for L<Test::Rinci>'s
 C<metadata_in_all_modules_ok()> function.
 
 
+=head1 OPTIONS
+
+=over
+
+=item --exclude-package=s
+
+Exclude a package. Can be specified multiple times.
+
+=item --exclude-function=s
+
+Exclude a function. Can be specified multiple times.
+
+=item * -E
+
+This sets C<test_function_examples> to 0.
+
+=item * -W
+
+This sets C<wrap_function> to 0.
+
+=back
+
+
 =head1 TODO
 
-Provide options.
+Add option -l (like prove)?
 
 
 =head1 SEE ALSO

@@ -1,5 +1,8 @@
 package Test::Rinci;
 
+# DATE
+# VERSION
+
 use 5.010001;
 use strict;
 use warnings;
@@ -11,8 +14,6 @@ use Perinci::Access::Perl 0.55;
 #use SHARYANTO::Array::Util qw(match_array_or_regex); # we'll just use ~~
 use Test::Builder;
 use Test::More ();
-
-# VERSION
 
 my $Test = Test::Builder->new;
 # XXX is cache_size=0 really necessary?
