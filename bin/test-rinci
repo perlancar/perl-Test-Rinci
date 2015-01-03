@@ -67,11 +67,6 @@ This sets C<wrap_function> to 0.
 =back
 
 
-=head1 TODO
-
-Add option -l (like prove)?
-
-
 =head1 SEE ALSO
 
 L<Test::Rinci>
