@@ -84,10 +84,10 @@ sub _test_function_metadata {
                     $Test->is_num($r->[0], $eg->{status} // 200, "status")
                         or do { $Test->diag($Test->explain($r)); $ok = 0 };
                     if (exists $eg->{result}) {
-                        Test::More::is_deeply($r->[2], $eg->{result}, "result")
+                        Test::More::is_deeply($r, $eg->{result}, "result")
                               or do {
                                   Test::More::diag(
-                                      Test::More::explain($r->[2]));
+                                      Test::More::explain($r));
                                   $ok = 0;
                               };
                     }
