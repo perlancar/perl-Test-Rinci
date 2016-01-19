@@ -1,5 +1,12 @@
 Revision history for Test-Rinci
 
+0.11    2016-01-19 (PERLANCAR)
+
+	- [Incompatible change] in example specification in function
+	  metadata, result now means the whole result not just actual
+	  result (third element) in an enveloped result.
+
+
 0.10    2015-09-06 (PERLANCAR)
 
 	- No functional changes.
