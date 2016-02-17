@@ -48,7 +48,26 @@ sub _test_function_metadata {
         $Test->diag("Can't meta $uri: $res->[0] - $res->[1]");
         return 0;
     }
+
     my $meta = $res->[2];
+
+  TEST_ARGS:
+    {
+        require Data::Sah;
+        last unless $meta->{args};
+        for my $argname (sort keys %{ $meta->{args} }) {
+            my $argspec = $meta->{args}{$argname};
+
+            # test that default values passes schema
+            if ($argspec->{schema} && exists($argspec->{default})) {
+                my $v = Data::Sah::gen_validator(
+                    $argspec->{schema}, {return_type=>'str'});
+                my $err = $v->($argspec->{default});
+                $Test->is_eq($err, '', "default value for arg '$argname' validates against schema") or $ok = 0;
+            }
+        }
+    }
+
     if ($opts->{test_function_examples} && $meta->{examples}) {
         my $i = 0;
         for my $eg (@{ $meta->{examples} }) {
