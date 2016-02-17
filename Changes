@@ -1,5 +1,10 @@
 Revision history for Test-Rinci
 
+0.12    2016-02-17 (PERLANCAR)
+
+	- Check that argument's default value validates against schema.
+
+
 0.11    2016-01-19 (PERLANCAR)
 
 	- [Incompatible change] in example specification in function
