@@ -103,10 +103,13 @@ sub _test_function_metadata {
                     $Test->is_num($r->[0], $eg->{status} // 200, "status")
                         or do { $Test->diag($Test->explain($r)); $ok = 0 };
                     if (exists $eg->{result}) {
-                        Test::More::is_deeply($r, $eg->{result}, "result")
+                        my $actual_r = $meta->{_orig_result_naked} ?
+                            $r->[2] : $r;
+                        Test::More::is_deeply(
+                            $actual_r, $eg->{result}, "result")
                               or do {
                                   Test::More::diag(
-                                      Test::More::explain($r));
+                                      Test::More::explain($actual_r));
                                   $ok = 0;
                               };
                     }
