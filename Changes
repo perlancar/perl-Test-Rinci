@@ -1,5 +1,10 @@
 Revision history for Test-Rinci
 
+0.13    2016-02-21 (PERLANCAR)
+
+	- Handle result_naked when testing example result.
+
+
 0.12    2016-02-17 (PERLANCAR)
 
 	- Check that argument's default value validates against schema.
