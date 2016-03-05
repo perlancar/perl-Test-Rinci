@@ -74,7 +74,9 @@ sub _test_function_metadata {
             $i++;
             next unless $eg->{test} // 1;
             $Test->subtest(
-                "example #$i" . ($eg->{summary} ? " ($eg->{summary})" : ""),
+                "example #$i" .
+                    ($eg->{name} ? " ($eg->{name})" :
+                     ($eg->{summary} ? " ($eg->{summary})" : "")),
                 sub {
                     my $args;
                     if ($eg->{args}) {
