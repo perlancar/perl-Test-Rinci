@@ -1,5 +1,13 @@
 Revision history for Test-Rinci
 
+0.14    2016-03-06 (PERLANCAR)
+
+	- No functional changes.
+
+	- Add example name (in addition to summary) to test name, if
+	  available.
+
+
 0.13    2016-02-21 (PERLANCAR)
 
 	- Handle result_naked when testing example result.
