@@ -7,7 +7,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use Getopt::Long qw(:config auto_help auto_version);
+use Getopt::Long qw(:config bundling no_ignore_case auto_help auto_version);
 use Test::Rinci;
 
 my %opts = (
