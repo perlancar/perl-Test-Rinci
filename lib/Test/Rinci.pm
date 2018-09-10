@@ -1,3 +1,5 @@
+## no critic: ValuesAndExpressions::ProhibitCommaSeparatedStatements BuiltinFunctions::RequireBlockMap
+
 package Test::Rinci;
 
 # DATE
@@ -10,7 +12,7 @@ use experimental 'smartmatch';
 #use Log::Any '$log';
 
 use File::Spec;
-use Perinci::Access::Perl 0.55;
+use Perinci::Access::Perl 0.87;
 #use SHARYANTO::Array::Util qw(match_array_or_regex); # we'll just use ~~
 use Test::Builder;
 use Test::More ();
