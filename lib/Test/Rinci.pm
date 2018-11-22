@@ -419,6 +419,9 @@ Some code taken from L<Test::Pod::Coverage> by Andy Lester.
 
 L<test-rinci>, a command-line interface for C<metadata_in_all_modules_ok()>.
 
+L<Test::Rinci::CmdLine> and L<test-rinci-cmdline> to test metadata inside
+L<Perinci::CmdLine> scripts.
+
 L<Rinci>
 
 L<Perinci::Sub::Wrapper>
