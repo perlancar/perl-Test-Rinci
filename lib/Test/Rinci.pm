@@ -56,6 +56,7 @@ sub _test_function_metadata {
   TEST_ARGS:
     {
         require Data::Sah;
+        require Data::Dmp;
         last unless $meta->{args};
         for my $argname (sort keys %{ $meta->{args} }) {
             my $argspec = $meta->{args}{$argname};
@@ -63,9 +64,16 @@ sub _test_function_metadata {
             # test that default values passes schema
             if ($argspec->{schema} && exists($argspec->{default})) {
                 my $v = Data::Sah::gen_validator(
-                    $argspec->{schema}, {return_type=>'str'});
-                my $err = $v->($argspec->{default});
-                $Test->is_eq($err, '', "default value for arg '$argname' validates against schema") or $ok = 0;
+                    $argspec->{schema}, {return_type=>'str+val'});
+                my $v_res = $v->($argspec->{default});
+                my ($err, $val) = @{$v_res};
+                $err //= '';
+                #$Test->explain($v_res);
+                #use DD; dd $v_res;
+                $Test->is_eq(
+                    $err, '',
+                    "default value for arg '$argname' (".Data::Dmp::dmp($argspec->{default}).", coerced as ".Data::Dmp::dmp($val).
+                        ") validates against schema (".Data::Dmp::dmp($argspec->{schema}).")") or $ok = 0;
             }
         }
     }
